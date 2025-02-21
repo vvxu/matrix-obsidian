@@ -8,6 +8,7 @@ LiveSync会自动同步到obsidian对应的笔记中。
 ```
 git clone https://github.com/vvxu/matrix-obsidian.git
 cd matrix-obsidian
+pip install -i requirements
 ```
 先把参数样本文件复制一下
 ```
