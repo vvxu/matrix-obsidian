@@ -16,11 +16,12 @@ bot = botlib.Bot(creds)
 async def worker(room, message):
     match = botlib.MessageMatch(room, message, bot)
 
-    if message.sender == sender_id and match.is_not_from_this_bot() and match.command(Prefix):
-    	current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    	write_data = f"{pre_data} {current_time} {' '.join(arg for arg in match.args())}\n"
-    	result = manager.add_document(write_data, parent_doc_id)
-    	message = "主人，我已经记录好啦！" if result else "主人，记录出错啦！赶紧找找原因！"
-    	await bot.api.send_text_message(room.room_id, message)
+    if message.sender == sender_id and match.is_not_from_this_bot() and match.command(pre_msg):
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        msg_data = ' '.join(arg for arg in match.args())
+        write_data = f"{pre_data} {current_time} {msg_data} \n"
+        result = manager.add_document(write_data, parent_doc_id)
+        message = "主人，我已经记录好啦!" if result else "主人，记录出错啦！赶紧找找 原因！"
+        await bot.api.send_text_message(room.room_id, message)
 
 bot.run()

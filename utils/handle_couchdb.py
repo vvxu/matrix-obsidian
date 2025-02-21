@@ -1,4 +1,7 @@
 import couchdb
+import uuid
+import time
+from datetime import datetime
 
 class CouchDBManager:
     def __init__(self, server_url, db_name):
@@ -6,37 +9,30 @@ class CouchDBManager:
         self.db = self.couch[db_name]
 
     def add_document(self, data, parent_doc_id):
-        # 创建新文档
-        new_doc = {
-            'data': data,
-            'type': 'leaf'
-        }
-        
         try:
-            new_doc_id, new_doc_rev = self.db.save(new_doc)
+            new_leaf_id = f"a:{uuid.uuid4().hex[:12]}"  # 生成 12 位唯一 ID
+            # 创建 leaf 数据
+            new_leaf_doc = {
+                "_id": new_leaf_id,
+                "data": data,
+                "type": "leaf"
+            }
+            # 尝试保存新 leaf
+            self.db[new_leaf_id] = new_leaf_doc
+
+            # 更新 "待办事项.md" 的 children
+            if parent_doc_id in self.db:
+                todo_doc = self.db[parent_doc_id]
+                if "children" not in todo_doc:
+                    todo_doc["children"] = []  # 确保 children 存在
+                todo_doc["children"].append(new_leaf_id)  # 添加新的 leaf ID
+                todo_doc["mtime"] = int(time.time() * 1000)  # 更新修改时间（毫秒级时间戳）
+                self.db[parent_doc_id] = todo_doc  # 保存更新
+
+            return True  # 成功写入返回 True
+        except couchdb.http.ResourceConflict:
+            print("❌ 写入失败: 资源冲突 (可能是 _rev 过期)")
         except Exception as e:
-            print(f"新文档保存失败: {e}")
-            return False
+            print(f"❌ 写入失败: {e}")
 
-        # 获取父文档
-        try:
-            parent_doc = self.db[parent_doc_id]
-        except Exception as e:
-            print(f"获取父文档失败: {e}")
-            return False
-
-        # 确保父文档有 children 列表
-        if 'children' not in parent_doc:
-            parent_doc['children'] = []
-
-        # 将新文档的 ID 添加到父文档的 children 列表中
-        print(new_doc_id)
-        parent_doc['children'].append(new_doc_id)
-
-        # 保存更新后的父文档
-        try:
-            self.db.save(parent_doc)
-            return True
-        except Exception as e:
-            return False
-
+        return False  # 发生异常返回 False
